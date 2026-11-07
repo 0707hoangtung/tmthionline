@@ -1,0 +1,6 @@
+{
+  "name": "Hệ thống Thi Online THPT - Chấm điểm Tự động & Quản trị Đợt thi",
+  "description": "Hệ thống thi online đồng bộ giáo viên và học sinh, đọc đề Word/JSON, giải mã mã QR đáp án, kiểm tra chéo 2 lớp, chấm điểm phía máy chủ theo QĐ 764, chống gian lận và xuất Excel chuẩn.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

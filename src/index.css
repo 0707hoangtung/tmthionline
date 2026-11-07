@@ -1,0 +1,9 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+/* Print / responsive adjustments */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

@@ -1,0 +1,512 @@
+PROMPT XÂY APP THI ONLINE CHO HỌC SINH — BẢN ĐẦY ĐỦ 100% CHỨC NĂNG
+====================================================================
+(Bản này thay thế file prompt-xay-app-thi-online-hoc-sinh-ai-studio.txt cũ.
+Dán toàn bộ nội dung file này vào ai.studio để xây app thi online có BACKEND.
+App phải có ĐẦY ĐỦ 100% các chức năng của file thi-online-test.html đính kèm,
+không được thiếu hay lược bớt chức năng nào.)
+
+App này là "anh em sinh đôi" của app số 1 (TM ĐẢO ĐỀ - THPT TG4).
+App số 1 lo khâu TRỘN ĐỀ + IN GIẤY + MÃ QR ĐÁP ÁN.
+App số 2 này lo khâu THI ONLINE của học sinh, có BACKEND hẳn hoi.
+Giáo viên lấy đề đã trộn từ app số 1, đưa sang app số 2 để học sinh thi online.
+
+====================================================================
+1. BỐI CẢNH & MỤC ĐÍCH
+====================================================================
+- Người dùng: 1 giáo viên (quản trị) + học sinh cả lớp/khối thi online cùng lúc.
+- Giáo viên đã có sẵn các đề thi (nhiều mã đề, ví dụ 1011–1018) được tạo từ app số 1
+  (TM ĐẢO ĐỀ), kèm mã QR chứa đáp án của TẤT CẢ các mã đề đó.
+- Giáo viên đưa đề + mã QR vào app số 2. Hệ thống phân tích mã QR để biết đáp án
+  từng câu trong từng mã đề. Sau đó giáo viên lưu lại, hệ thống sinh ra MỘT ĐƯỜNG
+  LINK DUY NHẤT để gửi cho học sinh làm bài online.
+- Học sinh mở link, nhập thông tin, vào phòng thi, làm bài, nộp bài, xem điểm ngay.
+- Giáo viên xem kết quả tất cả học sinh theo thời gian thực trong BẢNG KẾT QUẢ
+  và xuất ra file Excel chuẩn.
+
+====================================================================
+2. HAI VAI TRÒ & CHUYỂN ĐỔI VAI TRÒ
+====================================================================
+- GIÁO VIÊN (quản trị): tải đề + mã QR, kiểm tra đáp án đã phân tích, lưu đề,
+  lấy link thi, xem BẢNG KẾT QUẢ theo thời gian thực, xuất Excel.
+- HỌC SINH (thí sinh): mở link thi, nhập thông tin, làm bài online, nộp bài,
+  xem điểm ngay sau khi nộp.
+- Trên cùng màn hình có 2 nút chuyển vai trò: "👩‍🏫 GIÁO VIÊN" và "🧑‍🎓 HỌC SINH".
+  Bấm nút nào thì hiện đúng giao diện của vai đó. Mặc định mở ở vai GIÁO VIÊN.
+
+====================================================================
+3. KIẾN TRÚC BẮT BUỘC — BACKEND + CƠ SỞ DỮ LIỆU CHUNG (KHÔNG ĐƯỢC GIẢ LẬP)
+====================================================================
+- Đây là app có BACKEND THẬT và CƠ SỞ DỮ LIỆU CHUNG (shared database).
+- Dùng backend Publish của ai.studio (hoặc dịch vụ backend tương đương mà ai.studio
+  cung cấp) để lưu đề thi, đáp án, bài làm và kết quả sao cho giáo viên và học sinh
+  trên CÁC THIẾT BỊ KHÁC NHAU đều thấy cùng một dữ liệu, theo thời gian thực.
+- localStorage CHỈ được dùng làm bộ nhớ đệm ngoại tuyến (offline cache), KHÔNG
+  được dùng làm nơi lưu trữ chính. Nếu ai.studio không cung cấp được backend dùng
+  chung + cơ sở dữ liệu chung thì PHẢI NÓI RÕ điều đó, KHÔNG được giả vờ có backend
+  bằng localStorage rồi báo là đã xong.
+- CHẤM ĐIỂM PHÍA MÁY CHỦ (server-side scoring): đáp án đúng KHÔNG BAO GIỜ được
+  gửi xuống máy học sinh trước khi nộp bài. Máy học sinh chỉ nhận đề thi (câu hỏi,
+  phương án) mà KHÔNG nhận đáp án. Sau khi học sinh nộp bài, máy chủ chấm điểm
+  rồi trả kết quả về. Học sinh mở mã nguồn trang thi cũng không tìm được đáp án.
+- Mọi dữ liệu (đề thi, đáp án, bài làm, kết quả, số lần vi phạm) đều lưu trên
+  máy chủ, không lưu chỉ trên trình duyệt của giáo viên hay học sinh.
+- Mỗi đợt thi có MỘT ĐƯỜNG LINK DUY NHẤT (unique exam link). Link này chứa mã
+  định danh đợt thi (ví dụ một chuỗi ngẫu nhiên khó đoán). Học sinh mở link là
+  vào đúng đợt thi đó. Giáo viên có thể tạo nhiều đợt thi, mỗi đợt một link riêng.
+
+====================================================================
+4. GIAO DIỆN GIÁO VIÊN — BỐ CỤC & CÁC MỤC (BẮT BUỘC ĐÚNG NHƯ FILE MẪU)
+====================================================================
+Màn hình giáo viên chia làm 2 cột (lưới 2 cột 50/50, xếp chồng thành 1 cột khi
+màn hình hẹp dưới ~1000px). Cột trái chứa các mục tải đề + thông tin đề thi.
+Cột phải chứa bảng xem lại từng mã đề. Bên dưới là LINK BÀI THI và BẢNG KẾT QUẢ.
+
+Các mục trên màn hình giáo viên, theo đúng thứ tự và đúng tên tiêu đề sau
+(KHÔNG thêm dòng mô tả dài dưới tiêu đề, giữ giao diện gọn như file mẫu):
+
+4.1. Mục "TẢI ĐỀ THI" (cột trái, trên cùng)
+- Giáo viên tải lên đề thi từ máy tính của mình. Chấp nhận 2 dạng:
+  (a) File Word (.docx) do app số 1 xuất ra;
+  (b) File JSON do app số 1 xuất ra (tron-de.json).
+- TUYỆT ĐỐI KHÔNG có đề thi mẫu sẵn trong hệ thống. Đề thi phải là đề giáo viên
+  tải lên từ máy tính của họ. Không được tự tạo đề mẫu để giáo viên dùng.
+- Sau khi tải, hệ thống hiện tóm tắt: "Mã đề XXXX — Phần I: N câu, Phần II: N câu,
+  Phần III: N câu. (Điểm tối đa: N điểm thô)" và trạng thái "Chưa có đáp án
+  (cần mã QR)" cho tới khi có mã QR.
+- Giáo viên chọn ĐIỂM CHO PHẦN III (trắc nghiệm trả lời ngắn) bằng ô chọn:
+  "0,5 điểm / câu" hoặc "1 điểm / câu". Mặc định là 0,5. Lựa chọn này áp dụng
+  cho TOÀN BỘ đợt thi và được lưu cùng đề thi.
+  (Phần I cố định 0,25 điểm/câu. Phần II chấm theo QĐ 764, xem mục 10.)
+
+4.2. Mục "📋 Thông tin đề thi" (cột trái, ngay dưới TẢI ĐỀ THI)
+- Một biểu mẫu gồm 6 ô nhập, giáo viên điền thông tin đầu đề của đề thi:
+  Sở GD-ĐT; Trường; Tên bài kiểm tra; Năm học; Môn học; Thời gian (phút).
+- Giá trị mặc định khi mở app:
+  Sở GD-ĐT: "SỞ GD-ĐT THANH HOÁ"
+  Trường: "TRƯỜNG THPT TỈNH GIA 4"
+  Tên bài kiểm tra: "KIỂM TRA GIỮA KỲ I LỚP 12"
+  Năm học: "2026-2027"
+  Môn học: "Toán"
+  Thời gian: 90 (phút, cho phép nhập từ 1 đến 180).
+- Thông tin này hiển thị thành ĐẦU ĐỀ của đề thi ở 2 nơi: (a) đầu bảng xem lại
+  của giáo viên, (b) đầu màn hình làm bài của học sinh. Định dạng đầu đề đúng
+  như đề thi Word: cột trái là Sở GD-ĐT, dòng "Trường" in đậm, bên dưới có
+  đường chấm "--------------------------"; cột phải CĂN GIỮA gồm: Tên bài kiểm
+  tra (in đậm), "Năm học: …", "Môn học: …" (dòng riêng), "Thời gian: … phút"
+  (dòng riêng), "(không kể thời gian phát đề)" (in nghiêng).
+- Khi giáo viên sửa bất kỳ ô nào trong biểu mẫu, đầu đề hiển thị cập nhật ngay
+  lập tức (live-update), không cần bấm lưu riêng. Khi bấm "LƯU TẤT CẢ CÁC ĐỀ"
+  thì thông tin này được lưu cùng đề thi.
+
+4.3. Mục "TẢI ĐÁP ÁN MÃ QR" (cột trái, dưới Thông tin đề thi)
+- Giáo viên đưa mã QR đáp án vào bằng cách TẢI LÊN ẢNH MÃ QR (file PNG/JPG).
+  Hệ thống tự quét ảnh bằng thư viện giải mã QR chạy trong trình duyệt (jsQR)
+  và đọc ra chuỗi JSON. Không được yêu cầu giáo viên tự gõ lại đáp án.
+- Có nút "⬇️ Tải ảnh mã QR mẫu về máy để test" để giáo viên tải ảnh QR mẫu
+  về máy rồi tải lại lên để thử. (Chỉ là ảnh mẫu để test, không phải đề mẫu.)
+- KHÔNG có ô dán chuỗi JSON mã QR thủ công trên giao diện (ô này chỉ giữ ẩn
+  trong mã nguồn để hệ thống tự ghi chuỗi đã quét được vào, giáo viên không
+  thấy và không dùng).
+- Sau khi quét xong, hệ thống phân tích chuỗi JSON thành đáp án từng câu trong
+  từng mã đề (xem mục 5) và hiện BẢNG XEM LẠI (mục 6). Nút "💾 LƯU TẤT CẢ
+  CÁC ĐỀ" nằm trong mục này, chỉ bấm được sau khi mã QR đã phân tích đúng
+  và kiểm tra chéo đạt.
+
+4.4. Mục "🔍 Xem lại từng mã đề (kiểm soát độ chính xác)" (cột phải)
+- Bảng xem lại chi tiết từng mã đề, có các nút chọn mã đề ("Mã 1011", "Mã 1012"...)
+  để chuyển qua lại giữa các mã đề.
+- Mỗi mã đề hiện đầy đủ từng câu hỏi: đề bài, các phương án (Phần I), các mệnh đề
+  a/b/c/d (Phần II), ô đáp án (Phần III), kèm đáp án đúng đã phân tích từ mã QR.
+- Câu nào đáp án từ mã QR KHỚP với đáp án trong file đề thì hiện dấu ✓ xanh;
+  câu nào KHÔNG KHỚP thì hiện dấu ⚠️ đỏ kèm nội dung khác nhau để giáo viên thấy.
+- Xem chi tiết chức năng sửa trực tiếp trong bảng xem lại ở mục 7.
+
+4.5. Mục "LINK BÀI THI" (bên dưới, toàn chiều rộng)
+- Sau khi giáo viên bấm "LƯU TẤT CẢ CÁC ĐỀ" thành công, mục này hiện ĐƯỜNG LINK
+  THI DUY NHẤT của đợt thi (dạng https://<địa-chỉ-app>/thi/<mã-đợt-thi>),
+  kèm nút "📋 Sao chép link" và nút "➡️ Mở link thi (sang vai học sinh)".
+- Nút "Mở link thi" mở màn hình học sinh ngay trong app để giáo viên kiểm tra
+  thử. Nếu chưa có đề nào được lưu thì bấm nút này phải báo rõ là chưa có đề
+  thi (không mở ra màn hình trống).
+- Link hiển thị là một liên kết bấm được (clickable), không phải chỉ là chữ.
+
+4.6. Mục "BẢNG KẾT QUẢ" (bên dưới LINK BÀI THI)
+- Bảng kết quả cập nhật THEO THỜI GIAN THỰC (xem mục 11).
+- Có nút "📊 Xuất file Excel (.xlsx)", nút "🔄 Làm mới bảng" và nút
+  "🗑 Xóa tất cả kết quả (test)" (để xóa toàn bộ kết quả khi test).
+
+====================================================================
+5. ĐỊNH DẠNG MÃ QR ĐÁP ÁN — BẮT BUỘC PHÂN TÍCH CHÍNH XÁC 100%
+====================================================================
+Mã QR này là mã QR đáp án do app số 1 (TM ĐẢO ĐỀ) tạo ra, theo form của TNMaker.
+Nội dung mã QR là MỘT CHUỖI JSON duy nhất, có dạng chính xác như sau:
+
+  {"success":true,"type":5,"1011":"ACBCABADACDD#SĐĐS_ĐSSĐ#10_4_3_23","1012":"BACADACDBDDC#ĐSSĐ_ĐSĐS#10_3_23_4"}
+
+Giải thích từng phần (phải tuân thủ đúng, không được tự ý đổi định dạng):
+- "success": true (luôn là true).
+- "type": 5 (luôn là 5 — giữ nguyên giá trị này khi tạo mã QR mới, và chấp nhận
+  giá trị này khi đọc mã QR vào).
+- Mỗi khóa còn lại là MỘT MÃ ĐỀ (dạng chuỗi số, ví dụ "1011", "1012", ...).
+- Giá trị của mỗi mã đề là MỘT CHUỖI duy nhất, gồm 3 phần nối nhau bằng dấu "#":
+    "<Phần I>#<Phần II>#<Phần III>"
+  + Phần I (trắc nghiệm nhiều phương án): các chữ A/B/C/D nối liền nhau, MỖI CHỮ
+    là đáp án của 1 câu, theo đúng thứ tự câu trong đề. Ví dụ "ACBCABADACDD"
+    nghĩa là 12 câu trắc nghiệm, đáp án lần lượt A, C, B, C, A, B, A, D, A, C, D, D.
+  + Phần II (trắc nghiệm Đúng/Sai): MỖI CÂU Đúng/Sai là 1 nhóm chữ Đ/S (4 chữ,
+    mỗi chữ là 1 ý a, b, c, d), các nhóm nối nhau bằng dấu "_".
+    Ví dụ "SĐĐS_ĐSSĐ" nghĩa là có 2 câu Đúng/Sai: câu 1 các ý là S, Đ, Đ, S;
+    câu 2 các ý là Đ, S, S, Đ.
+  + Phần III (trắc nghiệm trả lời ngắn): các đáp án nối nhau bằng dấu "_".
+    Đáp án là số (số thập phân, số tự nhiên hoặc số nguyên). Ví dụ "10_4_3_23"
+    nghĩa là 4 câu trả lời ngắn, đáp án lần lượt 10, 4, 3, 23.
+  + Lưu ý: đáp án Phần III trong mã QR có thể dùng dấu phẩy thập phân kiểu
+    Việt Nam (ví dụ "3,9") — hệ thống phải đọc đúng "3,9" là số 3,9.
+
+YÊU CẦU PHÂN TÍCH MÃ QR — CHÍNH XÁC 100%, KHÔNG ĐƯỢC SAI MỘT ĐÁP ÁN NÀO:
+- Sau khi đọc được chuỗi JSON, hệ thống phân tích thành đáp án từng câu trong
+  từng mã đề theo đúng quy tắc ở trên.
+- KIỂM TRA CHÉO BẮT BUỘC (2 lớp):
+  (a) KIỂM TRA SỐ LƯỢNG: số đáp án phân tích được PHẢI KHỚP với số câu hỏi của
+      đề thi đã tải lên (số chữ Phần I = số câu trắc nghiệm; số nhóm Phần II =
+      số câu Đúng/Sai, mỗi nhóm đúng 4 chữ Đ/S; số đáp án Phần III = số câu
+      trả lời ngắn). Nếu KHÔNG KHỚP ở bất kỳ mã đề nào, hệ thống PHẢI BÁO LỖI
+      RÕ RÀNG (ghi rõ mã đề nào, phần nào, thiếu/thừa bao nhiêu đáp án) và
+      KHÔNG CHO LƯU cho đến khi giáo viên sửa xong.
+  (b) KIỂM TRA TỪNG CHỮ CÁI (khi đề thi là file JSON của app số 1, vốn đã có
+      sẵn đáp án trong file): đối chiếu TỪNG đáp án trong mã QR với đáp án đã
+      có trong file JSON. Nếu mã QR ghi khác với file JSON ở câu nào thì PHẢI
+      BÁO RÕ câu đó (ghi rõ mã đề, phần, câu, mã QR ghi gì, file đề ghi gì)
+      và KHÔNG CHO LƯU. Nếu mã đề có trong mã QR nhưng KHÔNG CÓ trong đề thi,
+      hoặc có trong đề thi nhưng KHÔNG CÓ trong mã QR, cũng PHẢI BÁO RÕ.
+- Đáp án sau khi lưu KHÔNG được tự ý thay đổi hay tính lại. Đề thi đã lưu là
+  bản cố định cho đợt thi đó.
+
+====================================================================
+6. ĐỌC FILE ĐỀ THI — FILE WORD (.docx) VÀ FILE JSON
+====================================================================
+6.1. File JSON (tron-de.json) của app số 1
+- Đọc trực tiếp: chứa questions + codes, mỗi câu đã có sẵn đáp án đúng.
+- Sau khi đọc JSON, hệ thống vẫn PHẢI đối chiếu đáp án trong JSON với đáp án
+  trong mã QR theo kiểm tra chéo (b) ở mục 5.
+
+6.2. File Word (.docx) — BẮT BUỘC ĐỌC ĐÚNG CÔNG THỨC VÀ HÌNH ẢNH
+- File Word do app số 1 xuất ra, hoặc file Word giáo viên soạn theo đúng form
+  chuẩn (xem mục 6.3). Hệ thống phải đọc được: mã đề, từng câu hỏi Phần I/II/III,
+  các phương án A/B/C/D, các mệnh đề a/b/c/d, đáp án Phần III.
+- TÁCH PHẦN THEO TIÊU ĐỀ TRƯỚC, KHÔNG ĐOÁN THEO NỘI DUNG: cắt đề thành
+  PHẦN I / PHẦN II / PHẦN III theo đúng tiêu đề phần trong file Word, rồi mới
+  tách câu hỏi trong từng phần. Dòng hướng dẫn của phần (ví dụ "Trong mỗi ý
+  a), b), c), d) ở mỗi câu...") KHÔNG PHẢI là câu hỏi, không được tách thành
+  câu hỏi hay mệnh đề. Lỗi thật đã gặp: dòng hướng dẫn của Phần II nằm ngay
+  sau Câu 12 bị đọc nhầm thành 4 mệnh đề Đúng/Sai, khiến Câu 12 (trắc nghiệm)
+  bị xếp nhầm sang Phần II.
+- LƯU Ý QUAN TRỌNG VỀ DÒNG HƯỚNG DẪN: trong file Word chuẩn, dòng hướng dẫn
+  ghi số câu bằng chữ "câu" VIẾT THƯỜNG (ví dụ "Thí sinh trả lời từ câu 1 đến
+  câu 12."). Hệ thống tách câu hỏi bằng mốc "Câu" VIẾT HOA + số (ví dụ "Câu 1.").
+  Vì vậy chữ "câu" viết thường trong dòng hướng dẫn KHÔNG được tính là mốc
+  câu hỏi. Hệ thống phải phân biệt chữ hoa/thường ở đây, nếu không sẽ tách
+  thừa câu hỏi từ dòng hướng dẫn.
+- GIẢI MÃ CÔNG THỨC WORD, KHÔNG ĐƯỢC LÀM RỚT CÔNG THỨC: file .docx chứa công
+  thức dạng OMML (Office Math, công thức chuẩn của Word). Bộ đọc Word chỉ lấy
+  văn bản thuần (mammoth mặc định) sẽ làm rớt mất công thức, khiến phương án
+  hay mệnh đề nào chỉ toàn công thức thành trống — phải giải mã OMML đúng,
+  hiển thị bằng KaTeX, và VẪN ĐẾM ĐỦ phương án/mệnh đề đó khi tách câu.
+  Không được hiện "[công thức]" thay cho nội dung thật. Nếu một công thức nào
+  không giải mã được thì PHẢI BÁO RÕ câu nào, phần nào, để giáo viên kiểm tra —
+  không được lặng lẽ bỏ qua hay tự đếm sai số câu.
+  Cách làm đã kiểm chứng (bản test): giải nén file .docx, đọc word/document.xml,
+  chuyển từng khối m:oMath thành LaTeX (phân số m:f → \frac, mũ m:sSup → ^{},
+  chỉ số dưới m:sSub → _{}, dấu ngoặc m:d, giới hạn lim → \lim_{...}; khử lỗi
+  file Word xuất từ app số 1 viết thừa "lim" sau lim_{...}), rồi hiển thị bằng
+  KaTeX (nhúng sẵn KaTeX + font, không dùng CDN). Khi tách câu/phương án/mệnh đề,
+  phải bỏ qua các mốc nằm TRONG công thức (ví dụ "a)" trong $f(a)$ không phải
+  là mệnh đề a)). Dấu bất đẳng thức trong công thức (ví dụ $x<2$ hay $y>0$)
+  phải được giữ nguyên, không được làm mất chữ nằm giữa dấu < và >.
+- HIỂN THỊ ĐẦY ĐỦ HÌNH ẢNH TRONG ĐỀ (bảng biến thiên, đồ thị, hình vẽ): file
+  .docx chứa hình ảnh trong word/media/* (PNG/JPG), tham chiếu qua word/_rels/
+  document.xml.rels. Khi đọc đề, phải trích xuất từng hình, chuyển thành data URI
+  và đặt ĐÚNG VỊ TRÍ trong đề bài / phương án / mệnh đề mà nó thuộc về (theo thứ
+  tự xuất hiện trong word/document.xml). Hình phải hiển thị cả ở cửa sổ xem lại
+  của giáo viên và ở màn hình làm bài của học sinh, với kích thước vừa khung
+  (tối đa ~560px rộng). Không được làm rớt hình — nếu một câu trong đề gốc có
+  hình mà bản hiển thị không có thì PHẢI BÁO RÕ câu nào để giáo viên kiểm tra.
+- Bảng trong file Word (ví dụ bảng biến thiên) phải được đọc và hiển thị đúng
+  dạng bảng, không được làm mất nội dung bảng.
+
+6.3. Form chuẩn của file Word để app đọc không lỗi (giáo viên soạn đề mới
+     theo đúng form này thì app đọc chuẩn 100%)
+- Công thức Toán: dùng Equation có sẵn của Word (Insert → Equation).
+  KHÔNG dùng MathType (xem mục 6.4).
+- Đầu đề ghi rõ "Mã đề XXXX" (ví dụ "Mã đề 1010").
+- Chia đúng 3 phần, ghi đúng tên: "PHẦN I. Câu trắc nghiệm nhiều phương án
+  lựa chọn", "PHẦN II. Câu trắc nghiệm đúng sai", "PHẦN III. Câu trắc nghiệm
+  trả lời ngắn".
+- Mỗi câu bắt đầu bằng "Câu 1.", "Câu 2.", ...
+- Phần I: đáp án ghi "A. ... B. ... C. ... D. ..." (mỗi đáp án một dòng).
+- Phần II: mỗi ý ghi "a) ... b) ... c) ... d) ..." (bắt buộc dùng dấu ")" sau
+  chữ a, b, c, d, không dùng dấu ".").
+- Phần III: ghi đề rồi ghi "Đáp án: ..." ở cuối câu.
+- Hình ảnh: chèn bằng Insert → Pictures như hình thường.
+- Dòng hướng dẫn trong mỗi phần ghi số câu bằng chữ "câu" viết thường
+  (ví dụ "Thí sinh trả lời từ câu 1 đến câu 12."), KHÔNG ghi "Câu" viết hoa.
+
+6.4. Lưu ý về file Word dùng MathType (KHÔNG đọc được trực tiếp)
+- File Word mà công thức được gõ bằng MathType (đối tượng OLE, ProgID
+  "Equation.DSMT4") thì hệ thống KHÔNG đọc được công thức, vì MathType lưu
+  công thức dưới dạng đối tượng nhúng chứ không phải OMML chuẩn của Word.
+  Khi gặp file này, hệ thống PHẢI BÁO RÕ cho giáo viên biết là file dùng
+  MathType nên công thức không hiển thị được, và hướng dẫn giáo viên 1 trong
+  2 cách: (a) trong Word, dùng MathType → Convert Equations → chọn nguồn là
+  "MathType or Equation Editor equations" và đích là "Word 2007 and later
+  equations (OMML)" rồi lưu lại; (b) chuyển công thức MathType thành hình ảnh
+  rồi tải lên. Tuyệt đối KHÔNG được lặng lẽ bỏ qua công thức rồi để phương án
+  chỉ còn dấu "." như file lỗi.
+
+====================================================================
+7. BẢNG XEM LẠI — SỬA TRỰC TIẾP TRONG BẢNG (BẮT BUỘC CÓ ĐỦ)
+====================================================================
+Trong bảng xem lại từng mã đề (mục 4.4), giáo viên được sửa trực tiếp nội dung
+đề thi trước khi lưu. Mọi thay đổi đều được lưu vào đề thi và đồng bộ vào đáp
+án đã phân tích từ mã QR (khi giáo viên sửa đáp án thì đáp án trong mã QR đã
+phân tích cũng đổi theo). Các chức năng sửa sau đây BẮT BUỘC phải có:
+
+7.1. Sửa nội dung đề bài (stem)
+- Mỗi câu hỏi có nút "✏️ Sửa nội dung". Bấm vào thì đề bài hiện thành ô nhập
+  để sửa (công thức gõ dạng $...$; hình ảnh trong đề hiện thành dấu [hình]
+  và được giữ nguyên khi lưu). Có nút "💾 Lưu nội dung" để lưu và nút "Hủy"
+  để bỏ qua thay đổi.
+
+7.2. Sửa phương án Phần I (trắc nghiệm)
+- Mỗi phương án A/B/C/D là một ô nhập, giáo viên sửa trực tiếp chữ trong đó.
+- Có nút tròn (radio) để chọn phương án nào là đáp án đúng. Đổi đáp án đúng
+  thì đáp án trong mã QR đã phân tích cũng đổi theo.
+
+7.3. Sửa mệnh đề Phần II (Đúng/Sai)
+- Mỗi mệnh đề a/b/c/d là một ô nhập DẠNG NHIỀU DÒNG, tự xuống dòng khi nội
+  dung dài (dạng textarea 2 dòng, chiều rộng tối đa 430px), để nội dung dài
+  hiện rõ ràng thay vì phải kéo ngang.
+- Bên cạnh mỗi mệnh đề là ô chọn đáp án Đ/S, được thu hẹp TỐI ĐA (chỉ rộng
+  khoảng 46px, vừa đủ chữ Đ hoặc S, chữ căn giữa), để bảng gọn và nội dung
+  mệnh đề hiện rõ.
+- Mỗi mệnh đề có nút KHÓA 🔒/🔓: khi khóa thì mệnh đề đó không bị xáo trộn
+  khi trộn đề; khi mở khóa thì được xáo trộn như thường. Trạng thái khóa được
+  lưu cùng đề thi.
+
+7.4. Sửa đáp án Phần III (trả lời ngắn)
+- Đáp án mỗi câu là một ô nhập, giáo viên sửa trực tiếp. Sửa đáp án thì đáp
+  án trong mã QR đã phân tích cũng đổi theo.
+
+7.5. Xóa câu hỏi
+- Mỗi câu hỏi có nút "🗑️ Xóa câu này". Bấm vào thì hệ thống hỏi xác nhận rồi
+  mới xóa. Xóa câu hỏi thì đồng thời xóa luôn đáp án của câu đó trong đáp án
+  đã phân tích từ mã QR, và số câu trong tóm tắt đề thi cập nhật lại.
+
+7.6. Điều chỉnh hình ảnh trong câu hỏi
+- Mỗi hình ảnh trong câu hỏi có 2 ô chọn nằm CÙNG MỘT DÒNG:
+  "Vị trí hình" (vị trí của hình trong câu) và "Căn chỉnh" (căn trái / căn
+  giữa / căn phải). Hai ô chọn này phải nằm cùng một dòng, gọn, không xếp
+  chồng thành 2 dòng.
+- Giáo viên có thể KÉO ĐỂ ĐỔI KÍCH THƯỚC hình: kéo góc của hình để thu nhỏ
+  hoặc phóng to, trong khoảng từ 80px đến 900px chiều rộng. Kích thước sau
+  khi kéo được lưu theo từng câu hỏi, và áp dụng cả khi hiển thị lại bảng xem
+  lại lẫn khi học sinh làm bài.
+- Căn chỉnh hình: căn trái / căn giữa / căn phải (dùng flexbox). Lưu ý: nếu
+  hình đang rộng bằng khung hiển thị thì đổi căn chỉnh sẽ không thấy khác biệt
+  cho tới khi thu nhỏ hình lại bằng cách kéo.
+
+====================================================================
+8. LUỒNG HỌC SINH (TỪNG BƯỚC)
+====================================================================
+Bước 1 — Mở link thi:
+- Học sinh mở đường link giáo viên gửi (trên điện thoại hoặc máy tính, bằng
+  trình duyệt Chrome). Không cần cài app, không cần đăng nhập tài khoản.
+
+Bước 2 — Nhập thông tin (BẮT BUỘC NHẬP ĐỦ MỚI ĐƯỢC VÀO THI):
+- Học sinh nhập đầy đủ 7 thông tin sau, mỗi thông tin là 1 ô nhập riêng:
+  Họ và tên; Trường; Lớp; Năm học; Số báo danh; Mã đề; Phòng thi.
+- Trong đó "Mã đề" là mã đề thi mà học sinh được giao (ví dụ 1011) — hệ thống
+  dùng mã này để lấy đúng đề thi đã trộn tương ứng.
+- Nếu thiếu bất kỳ ô nào, hoặc mã đề không tồn tại trong đợt thi này, hệ thống
+  báo lỗi rõ ràng (ghi rõ mã đề nào không có, và liệt kê các mã đề đang có)
+  và không cho vào thi.
+- Có nút "← Về màn hình nhập thông tin" để quay lại màn hình nhập thông tin
+  khi cần.
+
+Bước 3 — Vào phòng thi:
+- Sau khi nhập đủ thông tin và mã đề hợp lệ, học sinh bấm "🚪 VÀO THI" để bắt đầu.
+- Đồng hồ đếm ngược bắt đầu chạy ngay khi vào thi (theo thời gian làm bài của đề,
+  lấy từ mục "Thời gian" trong Thông tin đề thi, mặc định 90 phút).
+
+====================================================================
+9. GIAO DIỆN PHÒNG THI (BẮT BUỘC ĐÚNG BỐ CỤC NÀY)
+====================================================================
+- Đầu màn hình thi hiện ĐẦU ĐỀ của đề thi (theo định dạng ở mục 4.2: Sở, Trường,
+  Tên bài, Năm học, Môn, Thời gian), để học sinh biết mình đang làm đề nào.
+- Màn hình thi chia làm 2 cột:
+  + CỘT TRÁI (bảng điều hướng, luôn hiện): hiện ĐẦY ĐỦ số lượng câu hỏi của đề
+    thi, dạng lưới các ô số (Câu 1, Câu 2, ... theo đúng thứ tự câu trong đề).
+    Mỗi ô cho biết câu đó đã làm hay chưa (đã làm thì đổi màu), câu đang làm
+    thì tô đậm/viền rõ. Bấm vào ô số nào thì cửa sổ bên phải nhảy tới câu đó.
+  + CỘT PHẢI (cửa sổ nội dung câu hỏi): hiện nội dung câu hỏi đang làm, gồm
+    đề bài, các phương án (Phần I), các mệnh đề Đ/S (Phần II) hoặc ô nhập đáp án
+    (Phần III). Học sinh chọn/nhập đáp án ngay trong cửa sổ này.
+    Có nút "← Câu trước" và "Câu sau →" để chuyển câu, và hiện rõ "Câu X / tổng
+    số câu" cùng tên phần đang làm (Phần I — Trắc nghiệm / Phần II — Đúng/Sai /
+    Phần III — Trả lời ngắn).
+- BỘ ĐẾM NGƯỢC THỜI GIAN: hiện rõ ràng, luôn thấy trong lúc làm bài (ví dụ ở
+  đầu trang). Hết giờ thì hệ thống tự động nộp bài.
+- Nút "NỘP BÀI" luôn thấy được. Khi bấm "NỘP BÀI", hệ thống hiện HỘP XÁC NHẬN
+  ("Nộp bài?" — "Bạn chắc chắn muốn nộp bài?") — học sinh bấm "Nộp bài" thì
+  mới nộp, bấm "Hủy — làm tiếp" thì quay lại làm tiếp.
+- SAU KHI NỘP BÀI: ngay lập tức hiện BẢNG THÔNG TIN KẾT QUẢ, trong đó:
+  + Ở TRÊN CÙNG là ĐIỂM SỐ học sinh đạt được, hiển thị bằng SỐ TO, RÕ, MÀU ĐỎ
+    (ví dụ "ĐIỂM: 8,5 / 10").
+  + BÊN DƯỚI là TẤT CẢ các thông tin thí sinh đã nhập trước đó (họ tên, trường,
+    lớp, năm học, số báo danh, mã đề, phòng thi) và điểm chi tiết từng phần
+    (Phần I đúng bao nhiêu câu, Phần II đúng bao nhiêu ý, Phần III đúng bao nhiêu câu).
+- Giao diện phải dùng được tốt trên cả điện thoại và máy tính. Trên điện thoại,
+  cột trái (bảng câu hỏi) thu gọn thành nút mở/đóng, không che mất nội dung câu hỏi.
+- Công thức Toán trong đề thi hiển thị bằng KaTeX, hình ảnh hiển thị đúng vị
+  trí, căn chỉnh và kích thước mà giáo viên đã chỉnh ở bảng xem lại (mục 7.6).
+
+====================================================================
+10. QUY TẮC CHẤM ĐIỂM — TUÂN THỦ HOÀN TOÀN QUY TẮC CỦA BỘ GIÁO DỤC
+====================================================================
+Chấm điểm thực hiện PHÍA MÁY CHỦ, ngay sau khi học sinh nộp bài.
+- Phần I (trắc nghiệm nhiều phương án): MỖI CÂU ĐÚNG = 0,25 điểm. Câu sai hoặc
+  không trả lời = 0 điểm.
+- Phần II (trắc nghiệm Đúng/Sai): MỖI CÂU tối đa 1,0 điểm, chấm theo QĐ 764:
+  đúng 0 ý = 0 điểm; đúng 1 ý = 0,1 điểm; đúng 2 ý = 0,25 điểm;
+  đúng 3 ý = 0,5 điểm; đúng 4 ý = 1,0 điểm.
+- Phần III (trắc nghiệm trả lời ngắn): MỖI CÂU ĐÚNG = 0,5 điểm HOẶC 1 điểm,
+  theo lựa chọn của giáo viên ở mục 4.1 (áp dụng chung cho cả đợt thi).
+  Câu trả lời ngắn CHỈ ĐƯỢC CHẤM ĐÚNG khi học sinh nhập ĐÚNG HOÀN TOÀN đáp án
+  gốc: chỉ chấp nhận số thập phân, số tự nhiên hoặc số nguyên; KHÔNG có dung sai
+  (không chấp nhận gần đúng); KHÔNG chấp nhận phân số hay căn thức dưới dạng nhập
+  (ví dụ đáp án là 7/9 thì nhập "7/9" là SAI, nhập "0,78" cũng SAI vì không khớp
+  tuyệt đối). Học sinh được nhập số thập phân bằng dấu phẩy hoặc dấu chấm
+  (ví dụ "3,9" và "3.9" đều được chấp nhận là 3,9). Nếu đáp án gốc là phân số/
+  căn thức thì hệ thống quy đổi sẵn đáp án đó về giá trị số của nó khi chấm
+  (ví dụ đáp án gốc sqrt(16) được chấm theo giá trị 4).
+- ĐIỂM THANG 10: điểm thang 10 = (điểm thô / điểm tối đa) × 10, làm tròn 1 chữ số
+  thập phân. (Ví dụ: điểm thô 7,5 / tối đa 10 = 7,5 điểm thang 10.)
+- Đáp án của học sinh và điểm số được lưu cùng nhau trên máy chủ ngay khi nộp bài.
+
+====================================================================
+11. CHỐNG GIAN LẬN — RỜI MÀN HÌNH LÀM BÀI
+====================================================================
+- Hệ thống theo dõi việc học sinh rời khỏi màn hình làm bài (chuyển tab, chuyển
+  cửa sổ, thu nhỏ trình duyệt, tắt màn hình làm bài). Dùng các sự kiện của trình
+  duyệt (visibilitychange, blur, fullscreenchange) để phát hiện.
+- LẦN 1 RỜI MÀN HÌNH: hệ thống hiện CẢNH BÁO rõ ràng trên màn hình làm bài
+  ("Bạn vừa rời khỏi màn hình làm bài. Đây là lần cảnh báo thứ 1. Nếu rời màn
+  hình thêm 1 lần nữa, bạn sẽ bị đưa ra khỏi bài thi."). Học sinh bấm "Tôi đã
+  hiểu — tiếp tục làm bài" để tiếp tục làm bài. Số lần vi phạm được ghi lại (= 1).
+- LẦN 2 RỜI MÀN HÌNH: hệ thống ĐẨY THÍ SINH RA KHỎI BÀI THI ngay lập tức, coi như
+  thí sinh đã VI PHẠM QUY CHẾ THI. Bài làm được nộp tự động với những câu đã làm
+  được đến lúc đó (những câu chưa làm tính là sai), và kết quả ghi rõ số lần vi
+  phạm = 2 cùng trạng thái "Vi phạm quy chế — bị đưa ra khỏi phòng thi".
+- Số lần vi phạm của từng thí sinh được lưu trên máy chủ và hiện trong BẢNG KẾT
+  QUẢ của giáo viên (xem mục 12).
+
+====================================================================
+12. BẢNG KẾT QUẢ CỦA GIÁO VIÊN + XUẤT FILE EXCEL CHUẨN
+====================================================================
+- BẢNG KẾT QUẢ cập nhật THEO THỜI GIAN THỰC: ngay khi một thí sinh nộp bài,
+  kết quả của thí sinh đó xuất hiện ngay trong bảng của giáo viên mà không cần
+  tải lại trang.
+- Bảng hiện ĐẦY ĐỦ thông tin của từng thí sinh, mỗi thí sinh một hàng, gồm các cột:
+  Họ và tên; Trường; Lớp; Năm học; Số báo danh; Mã đề; Phòng thi;
+  Điểm thang 10; Điểm thô; Điểm tối đa; Điểm Phần I; Điểm Phần II; Điểm Phần III;
+  Số lần vi phạm quy chế thi (số lần rời màn hình);
+  Trạng thái (Đã nộp / Vi phạm quy chế — bị đưa ra khỏi phòng thi); Thời gian nộp bài.
+- NÚT XUẤT EXCEL: giáo viên bấm một nút "📊 Xuất file Excel (.xlsx)" để tải
+  BẢNG KẾT QUẢ về dưới dạng file Excel chuẩn (.xlsx, mở được bằng Microsoft
+  Excel và Google Sheets). File Excel phải có: hàng tiêu đề là tên các cột như
+  trên (tiếng Việt, có dấu); MỖI MỘT CỘT trong file Excel là MỘT THÔNG TIN mà
+  thí sinh đã nhập vào trước đó (họ tên, trường, lớp, năm học, số báo danh,
+  mã đề, phòng thi) CỘNG với điểm số và SỐ LẦN VI PHẠM QUY CHẾ THI (tức số lần
+  thí sinh rời màn hình làm bài thi). Không được gộp nhiều thông tin vào chung
+  một cột. Không được xuất ra file CSV thay cho Excel.
+- Giáo viên có thể lọc/tìm kiếm trong BẢNG KẾT QUẢ (theo tên, mã đề, lớp) và
+  sắp xếp theo điểm số.
+- Có nút "🔄 Làm mới bảng" để tải lại bảng kết quả, và nút "🗑 Xóa tất cả kết
+  quả (test)" để xóa toàn bộ kết quả khi test.
+
+====================================================================
+13. YÊU CẦU KỸ THUẬT & GIỚI HẠN (BẮT BUỘC)
+====================================================================
+- App chạy hoàn toàn trên trình duyệt (web app), không cần cài đặt. Giáo viên và
+  học sinh đều mở bằng trình duyệt Chrome trên điện thoại hoặc máy tính.
+- Công thức Toán trong đề thi hiển thị bằng KaTeX (giống app số 1). Đề thi tải
+  lên từ app số 1 có thể chứa công thức Toán — phải hiển thị đúng, không hiện
+  mã TeX thô. KaTeX và font chữ phải được NHÚNG SẴN trong app (không dùng CDN),
+  để app chạy được cả khi máy không có mạng (máy giáo viên đã gặp lỗi không tải
+  được thư viện từ CDN).
+- Các thư viện cần cho app (đọc file Word, giải mã mã QR, xuất Excel) cũng phải
+  được nhúng sẵn trong app, không phụ thuộc CDN.
+- Tuyệt đối KHÔNG gửi đáp án đúng xuống máy học sinh trước khi nộp bài
+  (xem mục 3). Mọi phép chấm điểm đều thực hiện phía máy chủ.
+- Khi hết giờ, hệ thống tự động nộp bài của học sinh (tính những câu đã làm).
+- Nếu mất mạng giữa chừng, bài làm của học sinh phải được lưu tạm trên máy của
+  học sinh và tự động nộp lại khi có mạng trở lại (không được mất bài).
+- Giao diện tiếng Việt, phông chữ rõ ràng, nút bấm to, dễ bấm trên điện thoại.
+- Không được dùng localStorage làm nơi lưu trữ chính cho đề thi, đáp án hay kết
+  quả (xem mục 3).
+- Giao diện giáo viên gọn, sạch: các mục chỉ có tiêu đề (TẢI ĐỀ THI, Thông tin
+  đề thi, TẢI ĐÁP ÁN MÃ QR, LINK BÀI THI, BẢNG KẾT QUẢ), KHÔNG có các dòng mô
+  tả dài dòng dưới mỗi tiêu đề. Màn hình giáo viên chia 2 cột 50/50 (cột trái:
+  tải đề + thông tin đề thi + mã QR; cột phải: bảng xem lại từng mã đề), xếp
+  chồng thành 1 cột khi màn hình hẹp.
+
+====================================================================
+14. CHECKLIST BÀN GIAO — PHẢI KIỂM TRA XONG MỚI BÁO HOÀN THÀNH
+====================================================================
+Trước khi báo hoàn thành, ai.studio PHẢI tự kiểm tra và báo cáo kết quả từng mục:
+[ ] 1. Giáo viên tải 1 file Word đề thi từ app số 1 (nhiều mã đề, ví dụ mã 2345
+      và 2346, mỗi mã 12 trắc nghiệm / 4 Đúng-Sai / 3 trả lời ngắn) + tải ảnh mã
+      QR đáp án → hệ thống phân tích đúng 100% đáp án từng câu từng mã đề;
+      bảng xem lại hiện đúng đáp án; kiểm tra chéo (số lượng + từng chữ cái)
+      báo đúng số câu; bấm "LƯU TẤT CẢ CÁC ĐỀ" thành công và sinh ra được
+      đường link thi duy nhất.
+[ ] 2. Kiểm tra chéo: cố tình đưa mã QR sai (thiếu đáp án 1 câu, hoặc đáp án
+      1 câu khác với file đề) → hệ thống PHẢI báo lỗi rõ ràng và KHÔNG cho lưu.
+[ ] 3. Học sinh mở link trên THIẾT BỊ THỨ 2 (điện thoại/máy tính khác): nhập đủ
+      7 thông tin (họ tên, trường, lớp, năm học, SBD, mã đề, phòng thi) → vào
+      được phòng thi; đầu đề thi hiện đúng (Sở, Trường, Tên bài, Năm học, Môn,
+      Thời gian); bảng câu hỏi bên trái hiện đủ số câu; bấm ô số nhảy đúng câu
+      hỏi bên phải; đồng hồ đếm ngược chạy.
+[ ] 4. Học sinh làm 1 câu đúng, 1 câu sai ở mỗi phần (I, II, III) rồi nộp bài
+      (có hộp xác nhận) → điểm hiện ngay, số to màu đỏ ở trên cùng, thông tin
+      thí sinh đầy đủ ở bên dưới; điểm tính đúng theo quy tắc mục 10 (Phần I
+      0,25; Phần II theo QĐ 764; Phần III đúng 0,5/1 theo lựa chọn của giáo viên).
+[ ] 5. Học sinh khác làm bài, rời màn hình lần 1 → hiện cảnh báo; rời lần 2 →
+      bị đẩy ra khỏi bài thi, bài được nộp tự động, kết quả ghi vi phạm = 2.
+[ ] 6. Giáo viên mở BẢNG KẾT QUẢ trên THIẾT BỊ CỦA GIÁO VIÊN: kết quả của học
+      sinh vừa nộp hiện ngay (không cần tải lại trang); xuất file Excel → mở bằng
+      Excel/Sheets thấy đủ các cột (họ tên, trường, lớp, năm học, SBD, mã đề,
+      phòng thi, điểm thang 10, điểm thô, điểm tối đa, điểm từng phần, số lần
+      vi phạm, trạng thái, thời gian nộp), mỗi thông tin một cột riêng.
+[ ] 7. Kiểm tra bảo mật: mở mã nguồn trang thi của học sinh (View Source) và
+      tìm đáp án đúng trong đó → KHÔNG được tìm thấy đáp án trước khi nộp bài.
+[ ] 8. Kiểm tra hết giờ: để đồng hồ chạy hết → bài tự động nộp, điểm được tính
+      và hiện trong BẢNG KẾT QUẢ của giáo viên.
+[ ] 9. Kiểm tra bảng xem lại: giáo viên sửa đề bài 1 câu, sửa 1 phương án Phần I
+      và đổi đáp án đúng, sửa 1 mệnh đề Phần II, sửa đáp án 1 câu Phần III, xóa
+      1 câu hỏi, khóa 1 mệnh đề → mọi thay đổi đều lưu được và đồng bộ vào đáp
+      án đã phân tích; kéo đổi kích thước 1 hình và đổi căn chỉnh → hình hiển
+      thị đúng kích thước và căn chỉnh đó ở cả bảng xem lại và màn hình học sinh.
+[ ] 10. Kiểm tra file Word có công thức OMML và hình ảnh: tải file Word đề thi
+      có công thức (phân số, mũ, chỉ số dưới, căn thức) và hình (bảng biến thiên,
+      đồ thị) → công thức hiển thị đúng bằng KaTeX (không hiện "[công thức]"),
+      hình hiển thị đúng vị trí; số câu đếm đúng (không thừa/thiếu do dòng
+      hướng dẫn hay do công thức).
+[ ] 11. Kiểm tra form chuẩn: tải file Word mẫu 3 phần (1 trắc nghiệm / 1 Đúng-Sai
+      / 1 trả lời ngắn, mã đề 1010) → app đọc đúng 1 câu mỗi phần, công thức
+      hiển thị đúng.
+Nếu bất kỳ mục nào KHÔNG ĐẠT, ai.studio phải nói rõ mục nào chưa đạt và vì sao,
+không được báo hoàn thành khi chưa kiểm tra xong.
+Nếu ai.studio không cung cấp được backend dùng chung + cơ sở dữ liệu chung thì
+PHẢI NÓI RÕ điều đó ngay từ đầu, KHÔNG được giả vờ có backend bằng localStorage
+rồi báo là đã xong.
